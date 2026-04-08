@@ -1,32 +1,28 @@
 import axios from 'axios';
-import { getAuthToken } from '../auth/getToken';    
-
-type SankhyaField = {$: string}; //$ significa qualquer valor dentro do sanhkya ( VALOR DE UM CAMPO NO CASO)
-type SankhyaEntity = {[key:string]:SankhyaField}; // retorna( "f0": { "$": "648" },"f1": { "$": "EMPRESA TESTE LTDA" },) entao estamos criando uma grande lista com tudo
-
-type SankhyaResponse = {
-    serviceName:string;
-    status:string;
-    responseBody:{
-        entities:{
-            total:string;
-            hasMoreResult:string;
-            metadata:{
-                fields:{field: Array<{name:string}>};};
-                entity: SankhyaEntity | SankhyaEntity[];
-        };
-        
-    }; 
-    
-};
-
-export type Partner = {
+import { getAuthToken } from '../auth/getToken';
+import { SankhyaEntity, SankhyaResponse } from '../types/sankhya.types';
+  
+export class Partner {
   codparc: number;
   nomeparc: string;
   cliente: string;
   codcid: string;
-  CGC_CPF:string;
-};
+  CGC_CPF: string;
+
+  constructor(data: {
+    codparc: number;
+    nomeparc: string;
+    cliente: string;
+    codcid: string;
+    CGC_CPF: string;
+  }) {
+    this.codparc  = data.codparc;
+    this.nomeparc = data.nomeparc;
+    this.cliente  = data.cliente;
+    this.codcid   = data.codcid;
+    this.CGC_CPF  = data.CGC_CPF;
+  }
+}
 
 function mapEntity(
   fields: Array<{ name: string }>,
@@ -36,12 +32,12 @@ function mapEntity(
     acc[field.name] = entity[`f${index}`]?.$ ?? '';
     return acc;
   }, {} as Record<string, string>);
-};
+}
 
 export async function getPartners(): Promise<Partner[]> {
-    const { token } = await getAuthToken();
+  const { token } = await getAuthToken();
 
-    const payload = {
+  const payload = {
     serviceName: 'CRUDServiceProvider.loadRecords',
     requestBody: {
       dataSet: {
@@ -59,8 +55,9 @@ export async function getPartners(): Promise<Partner[]> {
         },
       },
     },
-};
-const response = await axios.post<SankhyaResponse>(
+  };
+
+  const response = await axios.post<SankhyaResponse>(
     'https://api.sandbox.sankhya.com.br/gateway/v1/mge/service.sbr?serviceName=CRUDServiceProvider.loadRecords&outputType=json',
     payload,
     {
@@ -73,18 +70,19 @@ const response = await axios.post<SankhyaResponse>(
 
   const { entities } = response.data.responseBody;
   const fields = entities.metadata.fields.field;
+
   const rawList = Array.isArray(entities.entity)
     ? entities.entity
     : [entities.entity];
 
   return rawList.map((entity) => {
     const obj = mapEntity(fields, entity);
-    return {
-      codparc: Number(obj['CODPARC']),
+    return new Partner({
+      codparc:  Number(obj['CODPARC']),
       nomeparc: obj['NOMEPARC'],
       cliente:  obj['CLIENTE'],
       codcid:   obj['CODCID'],
-      CGC_CPF: obj['CGC_CPF'],
-    };
+      CGC_CPF:  obj['CGC_CPF'],
+    });
   });
 }
