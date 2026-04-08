@@ -8,6 +8,7 @@ dotenv.config();
 type AuthResponse = {
   access_token: string;
   token_type: string;
+  expires_in: number;
 };
 
 type TokenResult = {
@@ -15,7 +16,21 @@ type TokenResult = {
   token: string;
 };
 
-export async function getAuthToken(): Promise<TokenResult | void> {
+let cachedToken: string | null = null;
+let tokenExpiresAt: number = 0;
+
+export async function getAuthToken(): Promise<TokenResult> { // sempre que fizer uma função, temos que informar o tipo de promise dela, nesse caso é o tokenResult ou vazio
+
+const now = Date.now();
+if (cachedToken && now < tokenExpiresAt - 10_000){// este 10_000 esta em timestamp
+    console.log(`[Auth][${new Date(now)}]:Estamos reutilizando o token}`)
+    return { type: 'Bearer', token: cachedToken };};
+console.log(`[Auth][${new Date(now)}]:Estamos requisitando um novo token`)
+
+
+
+
+
   const data = qs.stringify({
     client_id: process.env.CLIENT_ID,
     client_secret: process.env.CLIENT_SECRET,
@@ -34,18 +49,13 @@ export async function getAuthToken(): Promise<TokenResult | void> {
     data: data
   };
 
-  try {
+ 
     const response = await axios.request<AuthResponse>(config);
+    cachedToken = response.data.access_token;
+    tokenExpiresAt= now + response.data.expires_in * 1000;
+    
 
-    const token = response.data.access_token;
-    const type = response.data.token_type;
 
-    console.log(token);
-    console.log(type);
+    return { type: response.data.token_type, token: cachedToken };
 
-    return { type, token };
-
-  } catch (error) {
-    console.log(error);
-  }
-}
+  } 
