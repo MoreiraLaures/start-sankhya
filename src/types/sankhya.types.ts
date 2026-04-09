@@ -10,7 +10,7 @@ export type SankhyaResponse = {
       total: string;
       hasMoreResult: string;
       metadata: {
-        fields: { field: Array<{ name: string }> };
+        fields: {field: Array<{name: string}>};
       };
       entity: SankhyaEntity | SankhyaEntity[];
     };

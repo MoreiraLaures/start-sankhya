@@ -86,3 +86,70 @@ export async function getPartners(): Promise<Partner[]> {
     });
   });
 }
+
+export type CreatePartnerInput = {
+  TIPPESSOA: 'F' | 'J';   
+  NOMEPARC: string;
+  CODCID: string;
+  ATIVO: 'S' | 'N';
+  CLIENTE: 'S' | 'N';
+  CLASSIFICMS: 'C' | 'P'; 
+  CGC_CPF?: string;  
+};
+
+export async function createPartner(input: CreatePartnerInput): Promise<Partner> {
+  const { token } = await getAuthToken();
+
+  const localFields: Record<string, { $: string }> = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (value !== undefined) {
+      localFields[key] = { $: String(value) };
+    }
+  }
+
+  const payload = {
+    serviceName: 'CRUDServiceProvider.saveRecord',
+    requestBody: {
+      dataSet: {
+        rootEntity: 'Parceiro',
+        includePresentationFields: 'S',
+        dataRow: {
+          localFields,
+        },
+        entity: {
+          fieldset: {
+            list: 'CODPARC,NOMEPARC,CLIENTE,CODCID,CGC_CPF',
+          },
+        },
+      },
+    },
+  };
+
+  const response = await axios.post<SankhyaResponse>(
+    'https://api.sandbox.sankhya.com.br/gateway/v1/mge/service.sbr?serviceName=CRUDServiceProvider.saveRecord&outputType=json',
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  const { entities } = response.data.responseBody;
+  const fields = entities.metadata.fields.field;
+
+  const entity = Array.isArray(entities.entity)
+    ? entities.entity[0]
+    : entities.entity;
+
+  const obj = mapEntity(fields, entity as SankhyaEntity);
+
+  return new Partner({
+    codparc:  Number(obj['CODPARC']),
+    nomeparc: obj['NOMEPARC'],
+    cliente:  obj['CLIENTE'],
+    codcid:   obj['CODCID'],
+    CGC_CPF:  obj['CGC_CPF'],
+  });
+}
