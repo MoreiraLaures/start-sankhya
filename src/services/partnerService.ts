@@ -134,22 +134,15 @@ export async function createPartner(input: CreatePartnerInput): Promise<Partner>
         'Content-Type': 'application/json',
       },
     }
+    
   );
-
-  const { entities } = response.data.responseBody;
-  const fields = entities.metadata.fields.field;
-
-  const entity = Array.isArray(entities.entity)
-    ? entities.entity[0]
-    : entities.entity;
-
-  const obj = mapEntity(fields, entity as SankhyaEntity);
-
+  console.log(JSON.stringify(response.data, null, 2));
+  const entity = response.data.responseBody.entities.entity as Record<string, { $: string }>;
   return new Partner({
-    codparc:  Number(obj['CODPARC']),
-    nomeparc: obj['NOMEPARC'],
-    cliente:  obj['CLIENTE'],
-    codcid:   obj['CODCID'],
-    CGC_CPF:  obj['CGC_CPF'],
+    codparc:  Number(entity['CODPARC']?.$),
+    nomeparc: entity['NOMEPARC']?.$ ?? '',
+    cliente:  entity['CLIENTE']?.$ ?? '',
+    codcid:   entity['CODCID']?.$ ?? '',
+    CGC_CPF:  entity['CGC_CPF']?.$ ?? '',
   });
 }
