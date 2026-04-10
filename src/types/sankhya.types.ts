@@ -16,3 +16,12 @@ export type SankhyaResponse = {
     };
   };
 };
+export type SankhyaSaveResponse = {
+  serviceName: string;
+  status: string;
+  responseBody: {
+    entities: {
+      entity: Record<string, { $: string }>;
+    };
+  };
+};

@@ -1,35 +1,28 @@
 import axios from 'axios';
 import { getAuthToken } from '../auth/getToken';
-import { SankhyaEntity, SankhyaResponse } from '../types/sankhya.types';
-  
-export class Partner {
+import { SankhyaEntity, SankhyaResponse, SankhyaSaveResponse } from '../types/sankhya.types';
+
+// Partner  é um tipo flexível: codparc sempre presente porem qualquer campo retornado, os campos serão ser informados na API
+
+export type Partner = {
   codparc: number;
-  nomeparc: string;
-  cliente: string;
-  codcid: string;
-  CGC_CPF: string;
+} & Record<string, string | number>;
 
-  constructor(data: {
-    codparc: number;
-    nomeparc: string;
-    cliente: string;
-    codcid: string;
-    CGC_CPF: string;
-  }) {
-    this.codparc  = data.codparc;
-    this.nomeparc = data.nomeparc;
-    this.cliente  = data.cliente;
-    this.codcid   = data.codcid;
-    this.CGC_CPF  = data.CGC_CPF;
-  }
-}
-
+//loadRecords: campos indexados ( Entra como f0, f1 .....)
 function mapEntity(
   fields: Array<{ name: string }>,
   entity: SankhyaEntity
 ): Record<string, string> {
   return fields.reduce((acc, field, index) => {
     acc[field.name] = entity[`f${index}`]?.$ ?? '';
+    return acc;
+  }, {} as Record<string, string>);
+}
+
+// saveRecord: campos com nomes reais como chave (CODPARC, NOMEPARC.........)
+function mapSaveEntity(entity: Record<string,{$: string }>): Record<string, string> {
+  return Object.entries(entity).reduce((acc, [key, value]) => {
+    acc[key] = value?.$ ?? '';
     return acc;
   }, {} as Record<string, string>);
 }
@@ -50,7 +43,7 @@ export async function getPartners(): Promise<Partner[]> {
         },
         entity: {
           fieldset: {
-            list: 'CODPARC,NOMEPARC,CLIENTE,CODCID,CGC_CPF',
+            list: 'CODPARC,NOMEPARC,CLIENTE,CODCID,CGC_CPF,TIPPESSOA,CLIENTE,ATIVO,CLASSIFICMS,CODCID',
           },
         },
       },
@@ -77,24 +70,44 @@ export async function getPartners(): Promise<Partner[]> {
 
   return rawList.map((entity) => {
     const obj = mapEntity(fields, entity);
-    return new Partner({
+    return {
       codparc:  Number(obj['CODPARC']),
       nomeparc: obj['NOMEPARC'],
-      cliente:  obj['CLIENTE'],
-      codcid:   obj['CODCID'],
-      CGC_CPF:  obj['CGC_CPF'],
-    });
+      cliente: obj['CLIENTE'],
+      codcid: obj['CODCID'],
+      CGC_CPF: obj['CGC_CPF'],
+      TIPPESSOA: obj['TIPPESSOA'],
+      CLIENTE: obj['CLIENTE'],
+      ATIVO: obj['ATIVO'],
+      CLASSIFICMS: obj['CLASSIFICMS'],
+      CODCID: obj['CODCID'],
+    };
   });
 }
 
+// Campos obrigatórios — sem default útil no Sankhya
 export type CreatePartnerInput = {
-  TIPPESSOA: 'F' | 'J';   
   NOMEPARC: string;
-  CODCID: string;
-  ATIVO: 'S' | 'N';
+  TIPPESSOA: 'F' | 'J';
   CLIENTE: 'S' | 'N';
-  CLASSIFICMS: 'C' | 'P'; 
-  CGC_CPF?: string;  
+  ATIVO: 'S' | 'N';
+  CODCID: string;
+
+  // Opcionais
+  CLASSIFICMS?: 'A' | 'C' | 'R' | 'P' | 'I' | 'X' | 'T';
+  RAZAOSOCIAL?: string;
+  CGC_CPF?: string;
+  EMAIL?: string;
+  TELEFONE?: string;
+  CEP?: string;
+  NUMEND?: string;
+  COMPLEMENTO?: string;
+  DTNASC?: string;
+  SEXO?: 'M' | 'F';
+  IDENTINSCESTAD?: string;
+  CODVEND?: number;
+  CODTIPPARC?: number;
+  OBSERVACOES?: string;
 };
 
 export async function createPartner(input: CreatePartnerInput): Promise<Partner> {
@@ -107,6 +120,9 @@ export async function createPartner(input: CreatePartnerInput): Promise<Partner>
     }
   }
 
+  // Retorna sempre CODPARC + todos os campos que foram enviados
+  const returnFields = ['CODPARC', ...Object.keys(localFields).filter(k => k !== 'CODPARC')].join(',');
+
   const payload = {
     serviceName: 'CRUDServiceProvider.saveRecord',
     requestBody: {
@@ -118,14 +134,14 @@ export async function createPartner(input: CreatePartnerInput): Promise<Partner>
         },
         entity: {
           fieldset: {
-            list: 'CODPARC,NOMEPARC,CLIENTE,CODCID,CGC_CPF',
+            list: returnFields,
           },
         },
       },
     },
   };
 
-  const response = await axios.post<SankhyaResponse>(
+  const response = await axios.post<SankhyaSaveResponse>(
     'https://api.sandbox.sankhya.com.br/gateway/v1/mge/service.sbr?serviceName=CRUDServiceProvider.saveRecord&outputType=json',
     payload,
     {
@@ -134,15 +150,14 @@ export async function createPartner(input: CreatePartnerInput): Promise<Partner>
         'Content-Type': 'application/json',
       },
     }
-    
   );
-  console.log(JSON.stringify(response.data, null, 2));
-  const entity = response.data.responseBody.entities.entity as Record<string, { $: string }>;
-  return new Partner({
-    codparc:  Number(entity['CODPARC']?.$),
-    nomeparc: entity['NOMEPARC']?.$ ?? '',
-    cliente:  entity['CLIENTE']?.$ ?? '',
-    codcid:   entity['CODCID']?.$ ?? '',
-    CGC_CPF:  entity['CGC_CPF']?.$ ?? '',
-  });
+
+  console.log(`[Partner][createPartner]: Parceiro criado com sucesso`);
+
+  const obj = mapSaveEntity(response.data.responseBody.entities.entity);
+
+  return {
+    codparc: Number(obj['CODPARC']),
+    ...obj,
+  };
 }

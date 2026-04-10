@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:developer.sankhya.com.br)"
+      "WebFetch(domain:developer.sankhya.com.br)",
+      "Bash(git pull:*)",
+      "WebFetch(domain:docs.pied.com.br)"
     ]
   }
 }
