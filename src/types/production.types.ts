@@ -50,3 +50,7 @@ export type ConfirmOPResult = {
   ordensIniciadas: number;
   ordens: number[];
 } & Record<string, any>;
+
+export type IniciarAtividadeInput = {
+  IDIATV: number;
+} & Record<string, any>;
