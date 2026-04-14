@@ -25,3 +25,25 @@ export type SankhyaSaveResponse = {
     };
   };
 };
+
+export type SankhyaConfirmResponse = {
+  serviceName: string;
+  status: string;
+  statusMessage?: string;
+  responseBody?: {
+    notas?: {
+      nota?: {
+        NUNOTA?: { $: string };
+        NUMNOTA?: { $: string };
+      };
+    };
+  };
+};
+
+export type SankhyaMgeProdResponse<T = any> = {
+  serviceName: string;
+  status: string;
+  pendingPrinting?: string;
+  transactionId?: string;
+  responseBody: T;
+};

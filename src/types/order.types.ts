@@ -36,3 +36,27 @@ export type OrderItem = {
   nunota: number;
   codprod: number;
 } & Record<string, string | number>;
+
+
+
+export type LinkOrderToOPInput = {
+  IDIPROC: number;
+  NUNOTA: number;
+  SEQNOTA: number;
+};
+
+
+export type LinkOrderToOPResult = {
+  idiproc: number;
+  nunota: number;
+  seqnota: number;
+} & Record<string, string | number>
+
+export type ConfirmOrderInput = {
+  NUNOTA: number;
+};
+
+export type ConfirmOrderResult = {
+  nunota: number;
+  numnota?: number;
+};
